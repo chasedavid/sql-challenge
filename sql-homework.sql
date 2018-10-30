@@ -208,10 +208,69 @@ JOIN (
 		) AS com
 ON co.country_id = com.country_id
 
--- 7h -
+-- 7h - list the top five genres in gross revenue in descending order
+SELECT c.name, agg.total
+FROM category AS c
+JOIN (	
+		SELECT fc.category_id, SUM(irpg.total) AS total
+		FROM film_category AS fc
+		JOIN (	
+				SELECT i.film_id, SUM(rpg.total) AS total
+				FROM inventory AS i
+				JOIN (	
+						SELECT r.inventory_id, SUM(pg.total) AS total
+						FROM rental AS r
+						JOIN (	
+								SELECT rental_id, SUM(amount) AS total
+								FROM payment
+								GROUP BY rental_id
+							  ) AS pg
+						ON r.rental_id = pg.rental_id
+						GROUP BY inventory_id
+					 ) AS rpg
+				ON i.inventory_id = rpg.inventory_id
+				GROUP BY i.film_id
+			 ) AS irpg
+		ON fc.film_id = irpg.film_id
+		GROUP BY fc.category_id 
+	) AS agg
+ON c.category_id = agg.category_id
+ORDER BY agg.total DESC
+LIMIT 5
 
--- 8a -
+-- 8a - create a view of query from 7h
+CREATE VIEW top_5_genre
+AS SELECT c.name, agg.total
+FROM category AS c
+JOIN (	
+		SELECT fc.category_id, SUM(irpg.total) AS total
+		FROM film_category AS fc
+		JOIN (	
+				SELECT i.film_id, SUM(rpg.total) AS total
+				FROM inventory AS i
+				JOIN (	
+						SELECT r.inventory_id, SUM(pg.total) AS total
+						FROM rental AS r
+						JOIN (	
+								SELECT rental_id, SUM(amount) AS total
+								FROM payment
+								GROUP BY rental_id
+							  ) AS pg
+						ON r.rental_id = pg.rental_id
+						GROUP BY inventory_id
+					 ) AS rpg
+				ON i.inventory_id = rpg.inventory_id
+				GROUP BY i.film_id
+			 ) AS irpg
+		ON fc.film_id = irpg.film_id
+		GROUP BY fc.category_id 
+	) AS agg
+ON c.category_id = agg.category_id
+ORDER BY agg.total DESC
+LIMIT 5
 
--- 8b -
+-- 8b - diplay view
+SELECT * FROM top_5_genre 
 
--- 8c -
+-- 8c - delete the view just created
+DROP VIEW top_5_genre
